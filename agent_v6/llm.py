@@ -1,4 +1,5 @@
-﻿import atexit
+import atexit
+import json
 import os
 import re
 import shutil
@@ -25,25 +26,45 @@ def run_llm(model_key: str, system: str, prompt: str, response_prefix: str = "",
         raise LLMError(f"지원하지 않는 모델입니다: {model_key}")
 
     ensure_ollama_server()
+    model_name = MODEL_NAMES[model_key]
 
     try:
         ollama = import_module("ollama")
-    except ModuleNotFoundError as exc:
-        raise LLMError("Python ollama 모듈이 없습니다. python -m pip install ollama 로 설치하세요.") from exc
+    except ModuleNotFoundError:
+        ollama = None
 
-    try:
-        response = call_without_thinking(ollama, MODEL_NAMES[model_key], system, prompt, response_prefix, num_predict)
-    except Exception:
-        ensure_ollama_server(force=True)
+    text = ""
+    last_error: Exception | None = None
+
+    if ollama is not None:
         try:
-            response = call_without_thinking(ollama, MODEL_NAMES[model_key], system, prompt, response_prefix, num_predict)
-        except Exception as retry_exc:
-            raise LLMError(f"Ollama 실행 실패: {retry_exc}") from retry_exc
+            response = call_without_thinking(ollama, model_name, system, prompt, response_prefix, num_predict)
+            text = response_text(response)
+        except Exception as exc:
+            last_error = exc
+            ensure_ollama_server(force=True)
+            try:
+                response = call_without_thinking(ollama, model_name, system, prompt, response_prefix, num_predict)
+                text = response_text(response)
+            except Exception as retry_exc:
+                last_error = retry_exc
 
-    text = response_text(response)
+        if not text.strip() and not response_prefix:
+            try:
+                response = generate_without_thinking(ollama, model_name, system, prompt, response_prefix, num_predict)
+                text = response_text(response)
+            except Exception as exc:
+                last_error = exc
 
     if not text.strip():
-        raise LLMError("Ollama 응답이 비어 있습니다.")
+        try:
+            text = http_generate_without_thinking(model_name, system, prompt, response_prefix, num_predict)
+        except Exception as exc:
+            last_error = exc
+
+    if not text.strip():
+        detail = f" 마지막 오류: {last_error}" if last_error else ""
+        raise LLMError(f"Ollama 응답이 비어 있습니다.{detail}")
     if should_prepend_response_prefix(text, response_prefix):
         text = response_prefix + text
     return text
@@ -140,12 +161,49 @@ def generate_without_thinking(ollama, model_name: str, system: str, prompt: str,
     raise last_error or LLMError("Ollama 호출 옵션을 구성하지 못했습니다.")
 
 
+def http_generate_without_thinking(model_name: str, system: str, prompt: str, response_prefix: str = "", num_predict: int | None = None) -> str:
+    if response_prefix:
+        payload = {
+            "model": model_name,
+            "prompt": build_raw_chat_prompt(system, prompt, response_prefix),
+            "raw": True,
+            "stream": False,
+            "keep_alive": "30m",
+        }
+    else:
+        payload = {
+            "model": model_name,
+            "system": system,
+            "prompt": prompt,
+            "stream": False,
+            "keep_alive": "30m",
+        }
+    if num_predict:
+        payload["options"] = {"num_predict": num_predict}
+
+    request = urllib.request.Request(
+        f"{_OLLAMA_HOST}/api/generate",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=600) as response:
+        body = response.read().decode("utf-8", errors="replace")
+    parsed = json.loads(body)
+    return str(parsed.get("response", ""))
+
+
 def response_text(response) -> str:
     if isinstance(response, dict):
         if "response" in response:
             return str(response.get("response", ""))
         message = response.get("message")
         if isinstance(message, dict):
+            return str(message.get("content", ""))
+        content = getattr(message, "content", None)
+        if content is not None:
+            return str(content)
+        if hasattr(message, "get"):
             return str(message.get("content", ""))
         return ""
 
@@ -158,6 +216,8 @@ def response_text(response) -> str:
     content = getattr(message, "content", None)
     if content is not None:
         return str(content)
+    if hasattr(message, "get"):
+        return str(message.get("content", ""))
     return ""
 
 
@@ -296,4 +356,3 @@ def create_models() -> None:
         if result.returncode != 0:
             raise LLMError(f"모델 생성 실패: {name}")
         print(f"모델 등록 완료: {name}", flush=True)
-
