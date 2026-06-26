@@ -18,6 +18,42 @@
 
 ## Windows 실행
 
+## 다른 컴퓨터에서 먼저 확인할 것
+
+새 PC에 프로젝트를 옮긴 뒤 아래 명령으로 필요한 프로그램이 있는지 확인하세요.
+
+```powershell
+python --version
+py -0p
+node --version
+pnpm --version
+ollama --version
+git --version
+```
+
+또는 프로젝트의 환경 점검 스크립트를 실행할 수 있습니다.
+
+```powershell
+cd C:\path\to\hwpx-ai-agent
+py scripts\verify_environment.py
+```
+
+`MISSING`이 표시되면 해당 항목을 설치해야 합니다.
+
+| 항목 | 필요한 이유 | 없을 때 설치/조치 |
+| --- | --- | --- |
+| Python 3.12 이상 | FastAPI 백엔드 실행, 테스트 실행 | https://www.python.org/downloads/ 또는 `winget install Python.Python.3.12` |
+| Node.js | React/Vite 프론트엔드 실행 | https://nodejs.org/ 또는 `winget install OpenJS.NodeJS.LTS` |
+| pnpm | 프론트엔드 패키지 설치 | `corepack enable` 후 `corepack prepare pnpm@latest --activate`, 또는 `npm install -g pnpm` |
+| Git | 저장소 복제와 업데이트 | https://git-scm.com/download/win 또는 `winget install Git.Git` |
+| Ollama | 로컬 LLM 추론 | https://ollama.com/download |
+| GGUF 모델 파일 | Q4/Q8 로컬 모델 등록 | `Qwen3.5-9B-DeepSeek-V4-Flash-Q4_K_M.gguf`, `Qwen3.5-9B-DeepSeek-V4-Flash-Q8_0.gguf`를 준비 |
+| NVIDIA 드라이버 | GPU 가속 사용 시 필요 | NVIDIA 최신 드라이버 설치 후 Ollama 재시작 |
+
+GPU가 없어도 CPU로 실행은 가능하지만, 문서 요약이나 규정 분석은 느릴 수 있습니다. Python의 `.venv`는 가상머신이 아니라 패키지 격리 폴더이므로 GPU 사용 여부에 직접 영향을 주지 않습니다. 실제 GPU 사용은 Ollama가 설치된 호스트 OS와 드라이버 상태에 따라 결정됩니다.
+
+필수 프로그램 설치 후 다음 순서로 실행합니다.
+
 ```powershell
 cd C:\models\hwpx-ai-agent\backend
 py -3.12 -m venv .venv
