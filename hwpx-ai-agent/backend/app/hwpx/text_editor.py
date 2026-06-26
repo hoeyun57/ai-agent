@@ -111,6 +111,23 @@ def append_paragraphs(workspace_dir: Path, source_xml_path: str, texts: list[str
     return changes
 
 
+def fill_template_fields(workspace_dir: Path, replacements: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Fill detected template placeholders by exact text replacement."""
+
+    changes: list[dict[str, str]] = []
+    for replacement in replacements:
+        target = replacement.get("target", "")
+        value = replacement.get("replacement", "")
+        label = replacement.get("label", target)
+        if not target:
+            raise ValueError("template field target must not be empty")
+        field_changes = replace_text(workspace_dir, target, value, scope="first")
+        for change in field_changes:
+            change["label"] = label
+        changes.extend(field_changes)
+    return changes
+
+
 def _editable_text_nodes(root: ET.Element) -> list[ET.Element]:
     nodes = [node for node in root.iter() if local_name(node.tag).lower() in {"t", "text"}]
     return nodes or [node for node in root.iter() if node.text]

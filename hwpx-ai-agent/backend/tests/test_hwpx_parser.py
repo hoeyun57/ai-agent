@@ -6,7 +6,8 @@ from zipfile import ZipFile
 from app.hwpx.package import HwpxPackage
 from app.hwpx.parser import HwpxParseError, parse_document
 from app.hwpx.table_editor import update_table_cell
-from app.hwpx.text_editor import append_paragraphs, replace_text
+from app.hwpx.template_fields import detect_template_fields
+from app.hwpx.text_editor import append_paragraphs, fill_template_fields, replace_text
 from app.hwpx.validator import validate_hwpx_package, validate_table_sums
 from app.security.zip_security import ZipSecurityError, safe_extract
 from app.tools.number_tools import parse_number
@@ -68,6 +69,25 @@ def test_append_generated_paragraphs_to_body(sample_hwpx: Path, tmp_path: Path) 
     assert document.paragraphs[-2].text == "계획서 초안"
     assert document.paragraphs[-1].text == "추진 배경"
     assert document.tables[0].rows == 2
+
+
+def test_detect_and_fill_template_fields(template_hwpx: Path, tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    HwpxPackage.open(template_hwpx, workspace, 100, 10_000_000)
+    document = parse_document("doc-template", "template.hwpx", workspace)
+    fields = detect_template_fields(document)
+    assert any(field.target == "{{제목}}" for field in fields)
+    changes = fill_template_fields(
+        workspace,
+        [
+            {"label": "수신", "target": "{{수신}}", "replacement": "전 직원"},
+            {"label": "제목", "target": "{{제목}}", "replacement": "AI 도입 안내"},
+        ],
+    )
+    updated = parse_document("doc-template", "template.hwpx", workspace)
+    assert len(changes) == 2
+    assert "전 직원" in updated.paragraphs[0].text
+    assert "AI 도입 안내" in updated.paragraphs[1].text
 
 
 def test_table_sum_mismatch(sample_hwpx: Path, tmp_path: Path) -> None:

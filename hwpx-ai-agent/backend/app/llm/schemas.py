@@ -47,6 +47,17 @@ class AppendParagraphsArgs(StrictModel):
     texts: list[str] = Field(min_length=1, max_length=80)
 
 
+class TemplateFieldReplacement(StrictModel):
+    label: str
+    target: str
+    replacement: str
+
+
+class FillTemplateFieldsArgs(StrictModel):
+    document_id: str
+    replacements: list[TemplateFieldReplacement] = Field(min_length=1, max_length=80)
+
+
 class SaveAsNewDocumentArgs(StrictModel):
     document_id: str
 
@@ -59,6 +70,7 @@ class ToolAction(StrictModel):
         "update_multiple_cells",
         "insert_paragraph",
         "append_paragraphs",
+        "fill_template_fields",
         "save_as_new_document",
         "validate_table_sums",
         "detect_inconsistent_numbers",
@@ -83,6 +95,7 @@ ACTION_SCHEMAS = {
     "update_multiple_cells": UpdateMultipleCellsArgs,
     "insert_paragraph": InsertParagraphArgs,
     "append_paragraphs": AppendParagraphsArgs,
+    "fill_template_fields": FillTemplateFieldsArgs,
     "save_as_new_document": SaveAsNewDocumentArgs,
 }
 

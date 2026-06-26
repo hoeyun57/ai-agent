@@ -6,6 +6,7 @@ import re
 from app.agents.model_router import select_model
 from app.agents.prompts import PLAN_PROMPT, SYSTEM_PROMPT
 from app.hwpx.document_model import Document
+from app.hwpx.template_fields import TemplateField, detect_template_fields
 from app.llm.json_parser import parse_json_object
 from app.llm.ollama_client import OllamaClient
 from app.llm.schemas import WorkPlan, validate_action_arguments
@@ -39,6 +40,31 @@ class Planner:
             return fallback
 
     async def _create_writing_plan(self, request: str, document: Document) -> WorkPlan:
+        fields = detect_template_fields(document)
+        if fields:
+            replacements = await self._draft_field_replacements(request=request, document=document, fields=fields)
+            if replacements:
+                return validate_action_arguments(
+                    WorkPlan(
+                        request_type="edit",
+                        requires_approval=True,
+                        risk_level="high",
+                        summary="문서 양식 빈칸 채우기",
+                        reason="사용자가 기존 HWPX 양식의 항목을 주제에 맞게 작성하도록 요청함",
+                        actions=[
+                            {
+                                "tool": "fill_template_fields",
+                                "arguments": {
+                                    "document_id": document.id,
+                                    "replacements": replacements,
+                                },
+                                "reason": "감지된 양식 자리표시자를 생성된 내용으로 치환",
+                            },
+                            {"tool": "save_as_new_document", "arguments": {"document_id": document.id}, "reason": "원본을 보존하고 새 HWPX로 저장"},
+                        ],
+                    )
+                )
+
         paragraphs = await self._draft_paragraphs(request=request, document=document)
         source_xml_path = self._target_source_xml_path(document)
         return validate_action_arguments(
@@ -62,6 +88,86 @@ class Planner:
                 ],
             )
         )
+
+    async def _draft_field_replacements(
+        self,
+        request: str,
+        document: Document,
+        fields: list[TemplateField],
+    ) -> list[dict[str, str]]:
+        field_payload = [
+            {
+                "label": field.label,
+                "target": field.target,
+                "context": field.context,
+            }
+            for field in fields[:30]
+        ]
+        prompt = (
+            "다음 HWPX 양식 자리표시자를 사용자 요청 주제에 맞게 채울 값을 작성하라.\n"
+            "반드시 JSON 객체 하나만 출력한다.\n"
+            "형식: {\"replacements\": [{\"label\": \"제목\", \"target\": \"{{제목}}\", \"replacement\": \"작성값\"}]}\n"
+            "target은 제공된 값을 절대 바꾸지 않는다.\n"
+            "문서에 없는 확정 수치, 날짜, 기관명은 만들지 말고 '사용자 확인 필요'라고 쓴다.\n\n"
+            f"문서명: {document.filename}\n"
+            f"사용자 요청: {request}\n"
+            f"자리표시자: {field_payload}\n"
+            f"문서 일부: {self._document_preview(document)}\n"
+        )
+        try:
+            raw = await self.llm.generate_json(
+                model=select_model("edit", "high"),
+                prompt=prompt,
+                system=SYSTEM_PROMPT,
+                temperature=0.2,
+            )
+            parsed: dict[str, Any] = parse_json_object(raw)
+            values = parsed.get("replacements")
+            if isinstance(values, list):
+                replacements = self._normalize_replacements(values, fields)
+                if replacements:
+                    return replacements
+        except Exception:
+            pass
+        return self._fallback_field_replacements(request=request, fields=fields)
+
+    def _normalize_replacements(self, values: list[Any], fields: list[TemplateField]) -> list[dict[str, str]]:
+        allowed_targets = {field.target: field for field in fields}
+        replacements: list[dict[str, str]] = []
+        for value in values:
+            if not isinstance(value, dict):
+                continue
+            target = str(value.get("target", "")).strip()
+            replacement = str(value.get("replacement", "")).strip()
+            field = allowed_targets.get(target)
+            if field is None or not replacement:
+                continue
+            replacements.append({"label": field.label, "target": field.target, "replacement": replacement[:1000]})
+        return replacements[:80]
+
+    def _fallback_field_replacements(self, request: str, fields: list[TemplateField]) -> list[dict[str, str]]:
+        topic = self._extract_topic(request)
+        paragraphs = self._fallback_draft_paragraphs(request, None)
+        body_text = "\n".join(paragraphs[1:5])
+        replacements: list[dict[str, str]] = []
+        for field in fields:
+            label = field.label.replace(" ", "")
+            if any(keyword in label for keyword in ["제목", "건명", "문서명"]):
+                replacement = topic
+            elif any(keyword in label for keyword in ["수신", "받는"]):
+                replacement = "관계자 여러분"
+            elif any(keyword in label for keyword in ["발신", "보내는", "기관"]):
+                replacement = "사용자 확인 필요"
+            elif any(keyword in label for keyword in ["날짜", "일자", "기한"]):
+                replacement = "사용자 확인 필요"
+            elif any(keyword in label for keyword in ["본문", "내용", "요지", "개요"]):
+                replacement = body_text
+            elif any(keyword in label for keyword in ["담당", "연락", "전화"]):
+                replacement = "사용자 확인 필요"
+            else:
+                replacement = topic if field.target.startswith(("○", "_", "□", ".")) else "사용자 확인 필요"
+            replacements.append({"label": field.label, "target": field.target, "replacement": replacement})
+        return replacements[:80]
 
     async def _draft_paragraphs(self, request: str, document: Document) -> list[str]:
         prompt = (
@@ -90,7 +196,7 @@ class Planner:
             pass
         return self._fallback_draft_paragraphs(request=request, document=document)
 
-    def _fallback_draft_paragraphs(self, request: str, document: Document) -> list[str]:
+    def _fallback_draft_paragraphs(self, request: str, document: Document | None) -> list[str]:
         title = self._infer_title(request)
         return [
             title,
@@ -123,7 +229,18 @@ class Planner:
             return "계획서 초안"
         if "기획서" in request:
             return "기획서 초안"
+        if "공문" in request:
+            return "공문 초안"
         return "문서 작성 초안"
+
+    def _extract_topic(self, request: str) -> str:
+        cleaned = request
+        for phrase in ["이 문서 양식을 유지해서", "이 공문 양식을 유지해서", "작성해줘", "써줘", "만들어줘", "채워줘"]:
+            cleaned = cleaned.replace(phrase, " ")
+        cleaned = re.sub(r"\s+", " ", cleaned).strip(" .")
+        if cleaned:
+            return cleaned[:120]
+        return self._infer_title(request)
 
     def _fallback_plan(self, request: str, document: Document) -> WorkPlan:
         replace_match = re.search(r"(.+?)(?:을|를)\s*모두\s*(.+?)(?:으로|로)\s*변경", request)
