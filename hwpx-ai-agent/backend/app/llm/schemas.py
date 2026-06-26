@@ -1,6 +1,6 @@
 """Strict schemas for model-produced work plans."""
 
-from typing import Annotated, Literal
+from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -41,6 +41,12 @@ class InsertParagraphArgs(StrictModel):
     text: str
 
 
+class AppendParagraphsArgs(StrictModel):
+    document_id: str
+    source_xml_path: str
+    texts: list[str] = Field(min_length=1, max_length=80)
+
+
 class SaveAsNewDocumentArgs(StrictModel):
     document_id: str
 
@@ -52,6 +58,7 @@ class ToolAction(StrictModel):
         "update_table_cell",
         "update_multiple_cells",
         "insert_paragraph",
+        "append_paragraphs",
         "save_as_new_document",
         "validate_table_sums",
         "detect_inconsistent_numbers",
@@ -75,6 +82,7 @@ ACTION_SCHEMAS = {
     "update_table_cell": UpdateTableCellArgs,
     "update_multiple_cells": UpdateMultipleCellsArgs,
     "insert_paragraph": InsertParagraphArgs,
+    "append_paragraphs": AppendParagraphsArgs,
     "save_as_new_document": SaveAsNewDocumentArgs,
 }
 

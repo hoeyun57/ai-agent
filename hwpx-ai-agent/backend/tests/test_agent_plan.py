@@ -8,6 +8,11 @@ from app.hwpx.parser import parse_document
 from app.llm.schemas import WorkPlan, validate_action_arguments
 
 
+class FailingLlm:
+    async def generate_json(self, *args, **kwargs) -> str:
+        raise RuntimeError("offline")
+
+
 @pytest.mark.asyncio
 async def test_fallback_replace_plan(sample_hwpx: Path, tmp_path: Path) -> None:
     workspace = tmp_path / "workspace"
@@ -16,6 +21,19 @@ async def test_fallback_replace_plan(sample_hwpx: Path, tmp_path: Path) -> None:
     plan = await Planner().create_plan("2025년을 모두 2026년으로 변경해줘", document)
     assert plan.requires_approval is True
     assert plan.actions[0].tool == "replace_text"
+
+
+@pytest.mark.asyncio
+async def test_writing_request_creates_append_plan(sample_hwpx: Path, tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    HwpxPackage.open(sample_hwpx, workspace, 100, 10_000_000)
+    document = parse_document("doc-test", "sample.hwpx", workspace)
+    plan = await Planner(llm=FailingLlm()).create_plan("이 문서 양식을 유지해서 AI 에이전트 계획서를 작성해줘", document)
+    assert plan.request_type == "edit"
+    assert plan.requires_approval is True
+    assert plan.risk_level == "high"
+    assert plan.actions[0].tool == "append_paragraphs"
+    assert "계획서" in plan.actions[0].arguments["texts"][0]
 
 
 def test_unknown_tool_blocked() -> None:

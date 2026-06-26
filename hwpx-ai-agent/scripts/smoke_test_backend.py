@@ -14,7 +14,7 @@ from app.agents.planner import Planner
 from app.hwpx.package import HwpxPackage
 from app.hwpx.parser import HwpxParseError, parse_document
 from app.hwpx.table_editor import update_table_cell
-from app.hwpx.text_editor import replace_text
+from app.hwpx.text_editor import append_paragraphs, replace_text
 from app.hwpx.validator import validate_hwpx_package, validate_table_sums
 from app.security.zip_security import ZipSecurityError, safe_extract
 from app.tools.number_tools import parse_number
@@ -50,6 +50,7 @@ async def main() -> None:
         assert parse_number("1억원") and str(parse_number("1억원").value) == "100000000"
         assert validate_table_sums(document.tables[0])[0]["calculated_total"] == "65000"
         assert update_table_cell(workspace, "table-1-1", 1, 2, "15,000원")["before"] == "10,000원"
+        assert append_paragraphs(workspace, "Contents/section0.xml", ["계획서 초안"])
         assert replace_text(workspace, "2025년", "2026년")
         output = tmp_path / "out.hwpx"
         package.repack(output)

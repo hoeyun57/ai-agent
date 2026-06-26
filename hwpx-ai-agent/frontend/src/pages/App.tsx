@@ -85,9 +85,15 @@ function DocumentsPage() {
 function AgentPage() {
   const docs = useQuery({ queryKey: ["documents"], queryFn: listDocuments });
   const [documentId, setDocumentId] = useState("");
-  const [message, setMessage] = useState("2025년을 모두 2026년으로 변경해줘");
+  const [message, setMessage] = useState("이 문서 양식을 유지해서 AI 에이전트 계획서를 작성해줘");
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const mutation = useMutation({ mutationFn: () => createPlan(documentId, message), onSuccess: setPlan });
+  const examples = [
+    "이 문서 양식을 유지해서 AI 에이전트 계획서를 작성해줘",
+    "2025년을 모두 2026년으로 변경해줘",
+    "예산 합계가 맞는지 확인해줘",
+    "본문과 표의 숫자 불일치를 찾아줘"
+  ];
   return (
     <section className="panel">
       <div className="panelHeader">
@@ -104,6 +110,13 @@ function AgentPage() {
           ))}
         </select>
         <textarea value={message} onChange={(event) => setMessage(event.target.value)} />
+        <div className="exampleBar">
+          {examples.map((example) => (
+            <button type="button" key={example} onClick={() => setMessage(example)}>
+              {example}
+            </button>
+          ))}
+        </div>
         <button disabled={!documentId || mutation.isPending} onClick={() => mutation.mutate()}>
           <Search size={16} />
           계획 생성
@@ -243,6 +256,7 @@ function PlanView({ response }: { response: PlanResponse }) {
         <div className="action" key={`${action.tool}-${index}`}>
           <strong>{action.tool}</strong>
           <p>{action.reason}</p>
+          {action.tool === "append_paragraphs" ? <p className="hint">생성된 초안은 승인 후 문서 끝에 문단으로 추가됩니다.</p> : null}
           <pre>{JSON.stringify(action.arguments, null, 2)}</pre>
         </div>
       ))}

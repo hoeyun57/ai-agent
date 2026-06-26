@@ -6,7 +6,7 @@ from zipfile import ZipFile
 from app.hwpx.package import HwpxPackage
 from app.hwpx.parser import HwpxParseError, parse_document
 from app.hwpx.table_editor import update_table_cell
-from app.hwpx.text_editor import replace_text
+from app.hwpx.text_editor import append_paragraphs, replace_text
 from app.hwpx.validator import validate_hwpx_package, validate_table_sums
 from app.security.zip_security import ZipSecurityError, safe_extract
 from app.tools.number_tools import parse_number
@@ -57,6 +57,17 @@ def test_update_table_cell(sample_hwpx: Path, tmp_path: Path) -> None:
     assert change["before"] == "10,000원"
     document = parse_document("doc-test", "sample.hwpx", workspace)
     assert document.tables[0].cells[1].text == "15,000원"
+
+
+def test_append_generated_paragraphs_to_body(sample_hwpx: Path, tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    HwpxPackage.open(sample_hwpx, workspace, 100, 10_000_000)
+    changes = append_paragraphs(workspace, "Contents/section0.xml", ["계획서 초안", "추진 배경"])
+    document = parse_document("doc-test", "sample.hwpx", workspace)
+    assert len(changes) == 2
+    assert document.paragraphs[-2].text == "계획서 초안"
+    assert document.paragraphs[-1].text == "추진 배경"
+    assert document.tables[0].rows == 2
 
 
 def test_table_sum_mismatch(sample_hwpx: Path, tmp_path: Path) -> None:

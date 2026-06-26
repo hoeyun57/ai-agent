@@ -11,7 +11,8 @@ PLAN_PROMPT = """
 사용자 요청과 문서 요약을 바탕으로 작업 계획 JSON을 작성하라.
 문서 수정은 requires_approval=true로 설정한다.
 허용 도구: replace_text, update_paragraph, update_table_cell, update_multiple_cells,
-insert_paragraph, save_as_new_document, validate_table_sums, detect_inconsistent_numbers.
+insert_paragraph, append_paragraphs, save_as_new_document, validate_table_sums, detect_inconsistent_numbers.
+작성형 요청은 append_paragraphs로 초안 문단을 추가하고 반드시 requires_approval=true로 설정한다.
 """
 
 SUMMARY_PROMPT = "문서 내용을 간결하게 한국어로 요약하라. 개인정보와 원문 장문 인용은 피한다."

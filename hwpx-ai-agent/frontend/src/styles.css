@@ -130,6 +130,18 @@ main {
   margin-top: 18px;
 }
 
+.exampleBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.exampleBar button {
+  background: #f4f8fa;
+  font-size: 13px;
+  min-height: 32px;
+}
+
 input,
 select,
 textarea {
@@ -214,6 +226,11 @@ pre {
 
 .error {
   color: #b42318;
+}
+
+.hint {
+  color: #56636b;
+  font-size: 13px;
 }
 
 .empty {
