@@ -5,6 +5,7 @@ import pytest
 from app.agents.planner import Planner
 from app.hwpx.package import HwpxPackage
 from app.hwpx.parser import parse_document
+from app.hwpx.template_fields import detect_template_fields
 from app.llm.schemas import WorkPlan, validate_action_arguments
 
 
@@ -34,6 +35,22 @@ async def test_writing_request_creates_append_plan(sample_hwpx: Path, tmp_path: 
     assert plan.risk_level == "high"
     assert plan.actions[0].tool == "append_paragraphs"
     assert "계획서" in plan.actions[0].arguments["texts"][0]
+
+
+@pytest.mark.asyncio
+async def test_writing_request_fills_template_fields(template_hwpx: Path, tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    HwpxPackage.open(template_hwpx, workspace, 100, 10_000_000)
+    document = parse_document("doc-template", "template.hwpx", workspace)
+    fields = detect_template_fields(document)
+    assert {field.label for field in fields} >= {"수신", "제목", "본문"}
+    plan = await Planner(llm=FailingLlm()).create_plan("이 공문 양식을 유지해서 AI 도입 안내 공문을 작성해줘", document)
+    assert plan.request_type == "edit"
+    assert plan.requires_approval is True
+    assert plan.actions[0].tool == "fill_template_fields"
+    replacements = plan.actions[0].arguments["replacements"]
+    assert any(item["target"] == "{{제목}}" for item in replacements)
+    assert any("AI 도입 안내 공문" in item["replacement"] for item in replacements)
 
 
 def test_unknown_tool_blocked() -> None:

@@ -14,6 +14,15 @@ SECTION_XML = """<?xml version="1.0" encoding="UTF-8"?>
 </section>
 """
 
+TEMPLATE_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<section>
+  <p><t>수신: {{수신}}</t></p>
+  <p><t>제목: {{제목}}</t></p>
+  <p><t>본문: {{본문}}</t></p>
+  <p><t>일자: ____</t></p>
+</section>
+"""
+
 
 @pytest.fixture()
 def sample_hwpx(tmp_path: Path) -> Path:
@@ -21,6 +30,15 @@ def sample_hwpx(tmp_path: Path) -> Path:
     with ZipFile(path, "w", compression=ZIP_DEFLATED) as archive:
         archive.writestr("mimetype", "application/hwp+zip")
         archive.writestr("Contents/section0.xml", SECTION_XML)
+    return path
+
+
+@pytest.fixture()
+def template_hwpx(tmp_path: Path) -> Path:
+    path = tmp_path / "template.hwpx"
+    with ZipFile(path, "w", compression=ZIP_DEFLATED) as archive:
+        archive.writestr("mimetype", "application/hwp+zip")
+        archive.writestr("Contents/section0.xml", TEMPLATE_XML)
     return path
 
 

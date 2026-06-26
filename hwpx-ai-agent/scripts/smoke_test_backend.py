@@ -14,7 +14,8 @@ from app.agents.planner import Planner
 from app.hwpx.package import HwpxPackage
 from app.hwpx.parser import HwpxParseError, parse_document
 from app.hwpx.table_editor import update_table_cell
-from app.hwpx.text_editor import append_paragraphs, replace_text
+from app.hwpx.template_fields import detect_template_fields
+from app.hwpx.text_editor import append_paragraphs, fill_template_fields, replace_text
 from app.hwpx.validator import validate_hwpx_package, validate_table_sums
 from app.security.zip_security import ZipSecurityError, safe_extract
 from app.tools.number_tools import parse_number
@@ -27,6 +28,14 @@ SECTION_XML = """<?xml version="1.0" encoding="UTF-8"?>
     <tr><tc><p><t>항목A</t></p></tc><tc><p><t>10,000원</t></p></tc><tc><p><t>20,000원</t></p></tc><tc><p><t>30,000원</t></p></tc></tr>
     <tr><tc><p><t>항목B</t></p></tc><tc><p><t>30,000원</t></p></tc><tc><p><t>35,000원</t></p></tc><tc><p><t>60,000원</t></p></tc></tr>
   </tbl>
+</section>
+"""
+
+TEMPLATE_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<section>
+  <p><t>수신: {{수신}}</t></p>
+  <p><t>제목: {{제목}}</t></p>
+  <p><t>본문: {{본문}}</t></p>
 </section>
 """
 
@@ -57,6 +66,13 @@ async def main() -> None:
         assert validate_hwpx_package(output)["valid"] is True
         plan = await Planner().create_plan("2025년을 모두 2026년으로 변경해줘", document)
         assert plan.requires_approval is True
+        template = tmp_path / "template.hwpx"
+        make_hwpx(template, TEMPLATE_XML)
+        template_workspace = tmp_path / "template-workspace"
+        HwpxPackage.open(template, template_workspace, 100, 10_000_000)
+        template_document = parse_document("doc-template", "template.hwpx", template_workspace)
+        assert detect_template_fields(template_document)
+        assert fill_template_fields(template_workspace, [{"label": "제목", "target": "{{제목}}", "replacement": "AI 도입 안내"}])
         bad = tmp_path / "bad.hwpx"
         with ZipFile(bad, "w") as archive:
             archive.writestr("../evil.xml", "<section/>")
