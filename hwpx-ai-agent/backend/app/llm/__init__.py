@@ -1,0 +1,2 @@
+"""Local Ollama LLM integration."""
+
