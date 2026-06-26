@@ -4,7 +4,7 @@ from typing import Any
 
 from app.hwpx.document_model import Document
 from app.hwpx.table_editor import update_multiple_cells, update_table_cell
-from app.hwpx.text_editor import insert_paragraph_after, replace_text, update_paragraph
+from app.hwpx.text_editor import append_paragraphs, insert_paragraph_after, replace_text, update_paragraph
 from app.hwpx.validator import detect_inconsistent_numbers, validate_table_sums
 from app.llm.schemas import ToolAction
 
@@ -37,6 +37,8 @@ class ToolRegistry:
             return update_multiple_cells(self.workspace_dir, list(args["updates"]))
         if action.tool == "insert_paragraph":
             return insert_paragraph_after(self.workspace_dir, str(args["source_xml_path"]), int(args["after_order"]), str(args["text"]))
+        if action.tool == "append_paragraphs":
+            return append_paragraphs(self.workspace_dir, str(args["source_xml_path"]), [str(text) for text in args["texts"]])
         if action.tool == "save_as_new_document":
             return {"status": "deferred_to_document_service"}
         raise ValueError(f"unknown edit tool: {action.tool}")
