@@ -1,0 +1,17 @@
+data/originals/*
+data/workspaces/*
+data/outputs/*
+data/database/*
+!data/originals/.gitkeep
+!data/workspaces/.gitkeep
+!data/outputs/.gitkeep
+!data/database/.gitkeep
+backend/.env
+backend/.venv/
+backend/*.egg-info/
+backend/server.*.log
+backend/__pycache__/
+backend/.pytest_cache/
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
