@@ -16,8 +16,6 @@
 - Ollama Q4/Q8 모델 선택 구조
 - 한국어 React UI
 
-## Windows 실행
-
 ## 다른 컴퓨터에서 먼저 확인할 것
 
 새 PC에 프로젝트를 옮긴 뒤 아래 명령으로 필요한 프로그램이 있는지 확인하세요.
@@ -52,37 +50,76 @@ py scripts\verify_environment.py
 
 GPU가 없어도 CPU로 실행은 가능하지만, 문서 요약이나 규정 분석은 느릴 수 있습니다. Python의 `.venv`는 가상머신이 아니라 패키지 격리 폴더이므로 GPU 사용 여부에 직접 영향을 주지 않습니다. 실제 GPU 사용은 Ollama가 설치된 호스트 OS와 드라이버 상태에 따라 결정됩니다.
 
-필수 프로그램 설치 후 다음 순서로 실행합니다.
+## 처음 설치 순서
 
-```powershell
-cd C:\models\hwpx-ai-agent\backend
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -e ".[test]"
+아래 예시는 프로젝트가 다음 위치에 있다고 가정합니다.
+
+```text
+C:\Users\OPENCC\Desktop\ai-agent-master\
+└─ hwpx-ai-agent\
+```
+
+다른 위치에 압축을 풀었다면 명령의 경로만 본인 PC에 맞게 바꾸면 됩니다.
+
+## 1. Ollama 모델 확인
+
+먼저 Ollama가 실행 중인지 확인합니다.
+
+```cmd
+ollama list
+```
+
+아래처럼 모델이 보이면 이미 준비된 상태입니다.
+
+```text
+hwpx-agent-q4:latest
+hwpx-agent-q8:latest
+```
+
+이미 다른 이름으로 등록된 모델이 있다면 그대로 써도 됩니다. 예를 들어:
+
+```text
+qwen3.5-deepseek-q4:latest
+qwen3.5-deepseek-q8:latest
+```
+
+이 경우 `backend\.env`에서 모델 이름만 맞추면 됩니다.
+
+## 2. 모델을 새 이름으로 맞추기
+
+앱 기본값은 `hwpx-agent-q4`, `hwpx-agent-q8`입니다. 이미 등록된 모델을 복사해서 이름만 맞추려면:
+
+```cmd
+ollama cp qwen3.5-deepseek-q4:latest hwpx-agent-q4
+ollama cp qwen3.5-deepseek-q8:latest hwpx-agent-q8
+ollama list
+```
+
+GGUF 파일에서 직접 등록해야 한다면, GGUF 파일과 Modelfile이 있는 폴더에서 실행합니다.
+
+```cmd
+cd C:\Users\OPENCC\Desktop\ai-agent-master
+ollama create hwpx-agent-q4:latest -f Modelfile_q4
+ollama create hwpx-agent-q8:latest -f Modelfile_q8
+```
+
+`invalid model name`이 나오면 Modelfile의 `FROM` 줄을 확인하세요. GGUF 파일을 직접 가리킬 때는 보통 아래처럼 상대 경로를 씁니다.
+
+```text
+FROM ./Qwen3.5-9B-DeepSeek-V4-Flash-Q4_K_M.gguf
+```
+
+## 3. 백엔드 설정 파일 만들기
+
+`backend\.env` 파일은 직접 만들어야 합니다.
+
+```cmd
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
 copy .env.example .env
-uvicorn app.main:app --reload --port 8000
+notepad .env
 ```
 
-다른 터미널:
-
-```powershell
-cd C:\models\hwpx-ai-agent\frontend
-pnpm install
-pnpm dev
-```
-
-프론트엔드는 `http://localhost:5173`, 백엔드는 `http://localhost:8000`에서 실행됩니다.
-
-## Ollama 모델 등록
-
-상위 폴더 `C:\models`에 GGUF와 `Modelfile_q4`, `Modelfile_q8`가 있다고 가정합니다.
-
-```powershell
-cd C:\models\hwpx-ai-agent
-.\scripts\setup_ollama_models.ps1 -Root ..
-```
-
-환경변수:
+기본 모델 이름을 쓸 경우:
 
 ```text
 OLLAMA_BASE_URL=http://localhost:11434
@@ -92,20 +129,227 @@ OLLAMA_DEFAULT_MODEL=hwpx-agent-q4
 MODEL_MODE=auto
 ```
 
+이미 등록된 기존 모델 이름을 그대로 쓸 경우:
+
+```text
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_FAST_MODEL=qwen3.5-deepseek-q4:latest
+OLLAMA_QUALITY_MODEL=qwen3.5-deepseek-q8:latest
+OLLAMA_DEFAULT_MODEL=qwen3.5-deepseek-q4:latest
+MODEL_MODE=auto
+```
+
+`.env`를 수정한 뒤에는 백엔드를 껐다가 다시 켜야 반영됩니다.
+
+## 4. 백엔드 설치와 실행
+
+Python 3.14에서는 일부 패키지 호환성이 불안정할 수 있으므로 Python 3.12 사용을 권장합니다.
+
+CMD에서 실행:
+
+```cmd
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+py -3.12 -m venv .venv
+.venv\Scripts\python.exe -m pip install --upgrade pip
+.venv\Scripts\python.exe -m pip install -e ".[test]"
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
+
+정상 실행되면 아래와 비슷하게 표시됩니다.
+
+```text
+Uvicorn running on http://127.0.0.1:8000
+Application startup complete.
+```
+
+브라우저에서 백엔드 상태를 확인할 수 있습니다.
+
+```text
+http://localhost:8000/api/settings/models
+http://localhost:8000/docs
+```
+
+`/api/settings/models`에서 `ollama.ok`가 `true`면 Ollama 연결이 정상입니다.
+
+## 5. 프론트엔드 설치와 실행
+
+새 CMD 창을 열고 실행합니다.
+
+```cmd
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\frontend
+pnpm.cmd install
+pnpm.cmd dev
+```
+
+PowerShell에서 `pnpm.ps1` 실행 정책 오류가 나면 `pnpm` 대신 `pnpm.cmd`를 쓰면 됩니다.
+
+정상 실행 후 브라우저에서 접속합니다.
+
+```text
+http://localhost:5173
+```
+
+## 실제 사용 순서
+
+1. 백엔드 CMD 창을 켜둡니다.
+2. 프론트엔드 CMD 창을 켜둡니다.
+3. 브라우저에서 `http://localhost:5173`을 엽니다.
+4. `업로드` 화면에서 HWPX 파일을 선택합니다.
+5. `문서` 화면에서 문단과 표가 추출됐는지 확인합니다.
+6. `AI 작업` 화면에서 문서를 선택합니다.
+7. 예시 요청을 입력합니다.
+
+```text
+2025년을 모두 2026년으로 변경해줘
+```
+
+8. `계획 생성`을 누릅니다.
+9. 화면에 `계획 ID`가 표시되면 복사합니다.
+10. `승인` 화면으로 이동합니다.
+11. plan ID를 붙여넣고 `승인`을 누릅니다.
+12. 수정본이 생성되고 diff가 표시됩니다.
+13. 문서 화면 또는 다운로드 링크에서 결과 파일을 받습니다.
+
+문서 수정은 계획 생성만으로 바로 적용되지 않습니다. 반드시 `승인` 화면에서 승인해야 실제 HWPX 수정본이 생성됩니다.
+
+## 자주 쓰는 요청 예시
+
+텍스트 전체 교체:
+
+```text
+2025년을 모두 2026년으로 변경해줘
+```
+
+예산 합계 검산:
+
+```text
+예산 합계가 맞는지 확인해줘
+```
+
+본문과 표 숫자 비교:
+
+```text
+본문과 표의 숫자 불일치를 찾아줘
+```
+
+현재 MVP에서는 텍스트 교체, 표 추출, 표 합계 검산, 숫자 불일치 탐지가 중심 기능입니다. 이미지, 수식, 차트, 도형 수정은 아직 지원하지 않습니다.
+
+## 기존 PowerShell 기준 빠른 실행
+
+PowerShell을 쓰는 경우에는 아래처럼 실행할 수도 있습니다.
+
+```powershell
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+다른 PowerShell 창:
+
+```powershell
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\frontend
+pnpm.cmd dev
+```
+
+## 문제 해결
+
+### `uvicorn`이 없다고 나올 때
+
+아래처럼 `python -m uvicorn` 방식으로 실행하세요.
+
+```cmd
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
+
+그래도 안 되면 의존성을 다시 설치합니다.
+
+```cmd
+.venv\Scripts\python.exe -m pip install -e ".[test]"
+```
+
+### `pytest`가 없다고 나올 때
+
+전역 `pytest`가 아니라 가상환경 안의 Python으로 실행하세요.
+
+```cmd
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+.venv\Scripts\python.exe -m pytest
+```
+
+`No module named pytest`가 나오면:
+
+```cmd
+.venv\Scripts\python.exe -m pip install -e ".[test]"
+```
+
+### `pnpm.ps1` 실행 정책 오류
+
+PowerShell에서 이런 오류가 날 수 있습니다.
+
+```text
+이 시스템에서 스크립트를 실행할 수 없으므로 pnpm.ps1 파일을 로드할 수 없습니다.
+```
+
+이때는 `pnpm.cmd`를 사용하세요.
+
+```cmd
+pnpm.cmd install
+pnpm.cmd dev
+```
+
+### 계획 생성 시 모델이 잠깐 실행됐다가 멈출 때
+
+정상일 수 있습니다. 계획 생성은 긴 대화가 아니라 JSON 계획을 한 번 만들고 끝나는 요청입니다. 백엔드 CMD 창에 아래처럼 나오면 성공입니다.
+
+```text
+POST /api/agent/plan HTTP/1.1" 200 OK
+```
+
+프론트 화면에 계획이 표시되지 않으면 브라우저 개발자 도구의 Console/Network 오류를 확인하세요.
+
+### Ollama 연결이 안 될 때
+
+Ollama 모델 목록을 확인합니다.
+
+```cmd
+ollama list
+```
+
+백엔드 상태 API도 확인합니다.
+
+```text
+http://localhost:8000/api/settings/models
+```
+
+`ollama.ok`가 `false`이면 Ollama 앱이 실행 중인지, `.env`의 `OLLAMA_BASE_URL`이 맞는지 확인하세요.
+
+### Python 3.14를 쓰고 있을 때
+
+패키지 설치가 실패하면 Python 3.12로 가상환경을 다시 만드는 것을 권장합니다.
+
+```cmd
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+rmdir /s /q .venv
+py -3.12 -m venv .venv
+.venv\Scripts\python.exe -m pip install --upgrade pip
+.venv\Scripts\python.exe -m pip install -e ".[test]"
+```
+
 ## 테스트
 
 pytest가 설치된 개발 환경:
 
-```powershell
-cd C:\models\hwpx-ai-agent\backend
-pytest
+```cmd
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+.venv\Scripts\python.exe -m pytest
 ```
 
 pytest가 없는 최소 환경에서는 smoke test를 실행할 수 있습니다.
 
-```powershell
-cd C:\models\hwpx-ai-agent
-py scripts\smoke_test_backend.py
+```cmd
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent
+backend\.venv\Scripts\python.exe scripts\smoke_test_backend.py
 ```
 
 ## API 문서
