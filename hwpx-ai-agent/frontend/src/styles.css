@@ -99,6 +99,10 @@ main {
   justify-content: space-between;
 }
 
+.compact {
+  justify-content: flex-start;
+}
+
 .panelHeader h2,
 .summaryHeader h3 {
   margin: 0;

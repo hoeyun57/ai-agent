@@ -44,6 +44,24 @@ class Repository:
             row = conn.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
             return dict(row) if row else None
 
+    def list_plans(self, limit: int = 50) -> list[dict[str, Any]]:
+        with connect(self.database_path) as conn:
+            rows = conn.execute(
+                "SELECT * FROM plans ORDER BY created_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+            return [dict(row) for row in rows]
+
+    def plan_status_counts(self) -> dict[str, int]:
+        with connect(self.database_path) as conn:
+            rows = conn.execute("SELECT status, COUNT(*) AS count FROM plans GROUP BY status").fetchall()
+            return {str(row["status"]): int(row["count"]) for row in rows}
+
+    def document_count(self) -> int:
+        with connect(self.database_path) as conn:
+            row = conn.execute("SELECT COUNT(*) AS count FROM documents").fetchone()
+            return int(row["count"]) if row else 0
+
     def update_plan(self, plan_id: str, status: str, result: dict[str, Any] | None = None, diff_text: str | None = None) -> None:
         with connect(self.database_path) as conn:
             conn.execute(
@@ -58,14 +76,14 @@ class Repository:
                 (document_id, event, json.dumps(detail, ensure_ascii=False)),
             )
 
-    def audit_logs(self, document_id: str | None = None) -> list[dict[str, Any]]:
+    def audit_logs(self, document_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
         with connect(self.database_path) as conn:
             if document_id:
                 rows = conn.execute(
-                    "SELECT * FROM audit_logs WHERE document_id = ? ORDER BY created_at DESC",
-                    (document_id,),
+                    "SELECT * FROM audit_logs WHERE document_id = ? ORDER BY created_at DESC LIMIT ?",
+                    (document_id, limit),
                 ).fetchall()
             else:
-                rows = conn.execute("SELECT * FROM audit_logs ORDER BY created_at DESC").fetchall()
+                rows = conn.execute("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
             return [dict(row) for row in rows]
 

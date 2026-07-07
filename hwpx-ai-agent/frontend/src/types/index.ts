@@ -40,3 +40,17 @@ export type PlanResponse = {
   };
 };
 
+export type RunResponse = PlanResponse & {
+  phase: "planned" | "executed" | "completed_readonly";
+  result?: unknown;
+};
+
+export type MonitoringStatus = {
+  ok: boolean;
+  documents: number;
+  plans: Record<string, number>;
+  ollama: { ok?: boolean; error?: string; models?: unknown[] };
+  recent_audit: Array<Record<string, unknown>>;
+  recent_plans: Array<Record<string, unknown>>;
+};
+

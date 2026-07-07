@@ -15,9 +15,18 @@ class AgentRequest(BaseModel):
     message: str
 
 
+class AgentRunRequest(AgentRequest):
+    auto_approve: bool = True
+
+
 @router.post("/plan")
 async def create_plan(request: AgentRequest) -> dict:
     return await Orchestrator().plan(request.document_id, request.message)
+
+
+@router.post("/run")
+async def run_agent(request: AgentRunRequest) -> dict:
+    return await Orchestrator().run(request.document_id, request.message, auto_approve=request.auto_approve)
 
 
 @router.post("/chat")

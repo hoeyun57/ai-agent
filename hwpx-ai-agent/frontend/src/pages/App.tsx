@@ -7,9 +7,11 @@ import {
   createPlan,
   getDiff,
   getDocument,
+  getMonitoringStatus,
   getModels,
   listDocuments,
   rejectPlan,
+  runAgent,
   uploadDocument,
   validateDocument
 } from "../api/client";
@@ -21,6 +23,7 @@ export function App() {
       <Route path="/" element={<UploadPage />} />
       <Route path="/documents" element={<DocumentsPage />} />
       <Route path="/agent" element={<AgentPage />} />
+      <Route path="/monitoring" element={<MonitoringPage />} />
       <Route path="/plans" element={<PlansPage />} />
       <Route path="/history" element={<HistoryPage />} />
       <Route path="/settings" element={<SettingsPage />} />
@@ -87,7 +90,15 @@ function AgentPage() {
   const [documentId, setDocumentId] = useState("");
   const [message, setMessage] = useState("이 문서 양식을 유지해서 AI 에이전트 계획서를 작성해줘");
   const [plan, setPlan] = useState<PlanResponse | null>(null);
+  const [runResult, setRunResult] = useState<unknown>(null);
   const mutation = useMutation({ mutationFn: () => createPlan(documentId, message), onSuccess: setPlan });
+  const runMutation = useMutation({
+    mutationFn: () => runAgent(documentId, message, true),
+    onSuccess: (data) => {
+      setPlan(data);
+      setRunResult(data);
+    }
+  });
   const examples = [
     "이 공문 양식의 빈칸을 유지해서 AI 도입 안내 공문을 작성해줘",
     "이 문서 양식을 유지해서 AI 에이전트 계획서를 작성해줘",
@@ -118,12 +129,48 @@ function AgentPage() {
             </button>
           ))}
         </div>
-        <button disabled={!documentId || mutation.isPending} onClick={() => mutation.mutate()}>
-          <Search size={16} />
-          계획 생성
-        </button>
+        <div className="toolbar compact">
+          <button disabled={!documentId || mutation.isPending} onClick={() => mutation.mutate()}>
+            <Search size={16} />
+            계획 생성
+          </button>
+          <button disabled={!documentId || runMutation.isPending} onClick={() => runMutation.mutate()} title="계획 생성과 승인을 한 번에 실행">
+            한번에 실행
+          </button>
+        </div>
       </div>
       {plan && <PlanView response={plan} />}
+      {runResult ? (
+        <>
+          <h3>한번에 실행 결과</h3>
+          <pre>{JSON.stringify(runResult, null, 2)}</pre>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function MonitoringPage() {
+  const status = useQuery({ queryKey: ["monitoring"], queryFn: getMonitoringStatus, refetchInterval: 5000 });
+  return (
+    <section className="panel">
+      <div className="panelHeader">
+        <h2>모니터링</h2>
+        <p>문서 수, 계획 상태, Ollama 연결, 최근 작업 로그를 5초마다 갱신합니다.</p>
+      </div>
+      <div className="metrics">
+        <span>문서 {status.data?.documents ?? 0}</span>
+        <span>Ollama {status.data?.ollama?.ok ? "연결됨" : "확인 필요"}</span>
+        {Object.entries(status.data?.plans ?? {}).map(([key, value]) => (
+          <span key={key}>
+            {key} {value}
+          </span>
+        ))}
+      </div>
+      <h3>최근 계획</h3>
+      <pre>{status.data ? JSON.stringify(status.data.recent_plans, null, 2) : "불러오는 중..."}</pre>
+      <h3>최근 작업 로그</h3>
+      <pre>{status.data ? JSON.stringify(status.data.recent_audit, null, 2) : "불러오는 중..."}</pre>
     </section>
   );
 }

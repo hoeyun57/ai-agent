@@ -1,4 +1,4 @@
-import type { DocumentModel, PlanResponse } from "../types";
+import type { DocumentModel, MonitoringStatus, PlanResponse, RunResponse } from "../types";
 
 const jsonHeaders = { "Content-Type": "application/json" };
 
@@ -33,6 +33,16 @@ export async function createPlan(documentId: string, message: string): Promise<P
   );
 }
 
+export async function runAgent(documentId: string, message: string, autoApprove = true): Promise<RunResponse> {
+  return parse(
+    await fetch("/api/agent/run", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ document_id: documentId, message, auto_approve: autoApprove })
+    })
+  );
+}
+
 export async function approvePlan(planId: string): Promise<unknown> {
   return parse(await fetch(`/api/plans/${planId}/approve`, { method: "POST" }));
 }
@@ -51,5 +61,9 @@ export async function validateDocument(documentId: string): Promise<unknown> {
 
 export async function getModels(): Promise<unknown> {
   return parse(await fetch("/api/settings/models"));
+}
+
+export async function getMonitoringStatus(): Promise<MonitoringStatus> {
+  return parse(await fetch("/api/monitoring/status"));
 }
 
