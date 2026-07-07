@@ -170,18 +170,17 @@ PowerShell에서 `pnpm.ps1` 실행 정책 오류가 나면 `pnpm` 대신 `pnpm.c
 ## 6. 백엔드와 프론트엔드를 한꺼번에 실행
 
 설치가 끝난 뒤에는 프로젝트 루트에서 아래 명령 하나로 백엔드와 프론트엔드를 같이 켤 수 있습니다.
+이미 `PS C:\models\hwpx-ai-agent>`처럼 프로젝트 폴더에 있다면 `cd ...`는 다시 할 필요가 없습니다.
 
 CMD:
 
 ```cmd
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent
 scripts\start_all.cmd
 ```
 
 PowerShell:
 
 ```powershell
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent
 powershell -ExecutionPolicy Bypass -File scripts\start_all.ps1
 ```
 
@@ -193,6 +192,19 @@ powershell -ExecutionPolicy Bypass -File scripts\start_all.ps1
 잠시 후 브라우저도 자동으로 `http://localhost:5173`에 열립니다.
 
 서버를 끄려면 열린 백엔드/프론트엔드 창에서 각각 `Ctrl + C`를 누르거나 창을 닫으면 됩니다.
+
+`pnpm.cmd was not found`가 나오면 Node.js LTS가 설치되어 있는지 확인한 뒤 아래 명령을 한 번 실행하세요.
+
+```powershell
+corepack enable
+corepack prepare pnpm@latest --activate
+```
+
+그래도 안 되면 npm으로 pnpm을 설치할 수 있습니다.
+
+```powershell
+npm install -g pnpm
+```
 
 ## 백엔드만 따로 실행
 
