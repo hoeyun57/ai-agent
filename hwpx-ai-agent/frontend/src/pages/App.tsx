@@ -7,6 +7,7 @@ import {
   createPlan,
   getDiff,
   getDocument,
+  getLlmEvents,
   getMonitoringStatus,
   getModels,
   listDocuments,
@@ -15,7 +16,7 @@ import {
   uploadDocument,
   validateDocument
 } from "../api/client";
-import type { DocumentModel, PlanResponse } from "../types";
+import type { DocumentModel, LlmEvent, PlanResponse } from "../types";
 
 export function App() {
   return (
@@ -24,6 +25,7 @@ export function App() {
       <Route path="/documents" element={<DocumentsPage />} />
       <Route path="/agent" element={<AgentPage />} />
       <Route path="/monitoring" element={<MonitoringPage />} />
+      <Route path="/developer" element={<DeveloperPage />} />
       <Route path="/plans" element={<PlansPage />} />
       <Route path="/history" element={<HistoryPage />} />
       <Route path="/settings" element={<SettingsPage />} />
@@ -172,6 +174,51 @@ function MonitoringPage() {
       <h3>최근 작업 로그</h3>
       <pre>{status.data ? JSON.stringify(status.data.recent_audit, null, 2) : "불러오는 중..."}</pre>
     </section>
+  );
+}
+
+function DeveloperPage() {
+  const events = useQuery({ queryKey: ["llm-events"], queryFn: () => getLlmEvents(100), refetchInterval: 3000 });
+  return (
+    <section className="panel">
+      <div className="panelHeader">
+        <div>
+          <h2>개발자 모니터링</h2>
+          <p>LLM 호출의 프롬프트, 원문 응답, JSON 파싱 결과, 오류와 fallback 여부를 3초마다 갱신합니다.</p>
+        </div>
+        <button onClick={() => events.refetch()} title="새로고침">
+          <RefreshCw size={16} />
+        </button>
+      </div>
+      <div className="devLog">
+        {(events.data?.items ?? []).map((event) => (
+          <LlmEventView event={event} key={event.id} />
+        ))}
+        {events.isLoading ? <Empty label="LLM 이벤트를 불러오는 중입니다." /> : null}
+        {events.data?.items.length === 0 ? <Empty label="아직 기록된 LLM 이벤트가 없습니다." /> : null}
+      </div>
+    </section>
+  );
+}
+
+function LlmEventView({ event }: { event: LlmEvent }) {
+  return (
+    <article className="devEvent">
+      <div className="devEventHeader">
+        <strong>{event.task}</strong>
+        <span>{event.model || "model 없음"}</span>
+        <span>{event.document_id || "문서 없음"}</span>
+        <span>{event.created_at}</span>
+        <span>{event.used_fallback ? "fallback" : "llm"}</span>
+      </div>
+      {event.error ? <p className="error">오류: {event.error}</p> : null}
+      <h3>프롬프트</h3>
+      <pre>{event.prompt_text}</pre>
+      <h3>LLM 원문 응답</h3>
+      <pre>{event.raw_response || "원문 응답 없음"}</pre>
+      <h3>파싱 결과</h3>
+      <pre>{event.parsed ? JSON.stringify(event.parsed, null, 2) : "파싱 결과 없음"}</pre>
+    </article>
   );
 }
 

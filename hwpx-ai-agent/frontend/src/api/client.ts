@@ -1,4 +1,4 @@
-import type { DocumentModel, MonitoringStatus, PlanResponse, RunResponse } from "../types";
+import type { DocumentModel, LlmEvent, MonitoringStatus, PlanResponse, RunResponse } from "../types";
 
 const jsonHeaders = { "Content-Type": "application/json" };
 
@@ -67,3 +67,6 @@ export async function getMonitoringStatus(): Promise<MonitoringStatus> {
   return parse(await fetch("/api/monitoring/status"));
 }
 
+export async function getLlmEvents(limit = 100): Promise<{ items: LlmEvent[] }> {
+  return parse(await fetch(`/api/monitoring/llm?limit=${limit}`));
+}

@@ -5,6 +5,8 @@ import re
 
 from app.agents.model_router import select_model
 from app.agents.prompts import PLAN_PROMPT, SYSTEM_PROMPT
+from app.config import get_settings
+from app.db.repositories import Repository
 from app.hwpx.document_model import Document
 from app.hwpx.template_fields import TemplateField, detect_template_fields
 from app.llm.json_parser import parse_json_object
@@ -15,6 +17,7 @@ from app.llm.schemas import WorkPlan, validate_action_arguments
 class Planner:
     def __init__(self, llm: OllamaClient | None = None) -> None:
         self.llm = llm or OllamaClient()
+        self.repo = Repository(get_settings().database_path)
 
     async def create_plan(self, request: str, document: Document) -> WorkPlan:
         if self._is_writing_request(request):
@@ -28,15 +31,20 @@ class Planner:
             f"표 수: {len(document.tables)}\n"
             f"사용자 요청: {request}\n"
         )
+        model = select_model(fallback.request_type, fallback.risk_level)
         try:
             raw = await self.llm.generate_json(
-                model=select_model(fallback.request_type, fallback.risk_level),
+                model=model,
                 prompt=prompt,
                 system=SYSTEM_PROMPT,
             )
-            plan = WorkPlan.model_validate(parse_json_object(raw))
-            return validate_action_arguments(plan)
-        except Exception:
+            parsed = parse_json_object(raw)
+            plan = WorkPlan.model_validate(parsed)
+            validated = validate_action_arguments(plan)
+            self._record_llm_event("plan", document.id, prompt, model, raw_response=raw, parsed_json=validated.model_dump())
+            return validated
+        except Exception as exc:
+            self._record_llm_event("plan", document.id, prompt, model, error=str(exc), used_fallback=True)
             return fallback
 
     async def _create_writing_plan(self, request: str, document: Document) -> WorkPlan:
@@ -114,9 +122,10 @@ class Planner:
             f"자리표시자: {field_payload}\n"
             f"문서 일부: {self._document_preview(document)}\n"
         )
+        model = select_model("edit", "high")
         try:
             raw = await self.llm.generate_json(
-                model=select_model("edit", "high"),
+                model=model,
                 prompt=prompt,
                 system=SYSTEM_PROMPT,
                 temperature=0.2,
@@ -126,9 +135,18 @@ class Planner:
             if isinstance(values, list):
                 replacements = self._normalize_replacements(values, fields)
                 if replacements:
+                    self._record_llm_event(
+                        "field_replacements",
+                        document.id,
+                        prompt,
+                        model,
+                        raw_response=raw,
+                        parsed_json={"replacements": replacements},
+                    )
                     return replacements
-        except Exception:
-            pass
+            self._record_llm_event("field_replacements", document.id, prompt, model, raw_response=raw, parsed_json=parsed, used_fallback=True)
+        except Exception as exc:
+            self._record_llm_event("field_replacements", document.id, prompt, model, error=str(exc), used_fallback=True)
         return self._fallback_field_replacements(request=request, fields=fields)
 
     def _normalize_replacements(self, values: list[Any], fields: list[TemplateField]) -> list[dict[str, str]]:
@@ -179,9 +197,10 @@ class Planner:
             f"문단 일부: {self._document_preview(document)}\n"
             f"사용자 요청: {request}\n"
         )
+        model = select_model("edit", "high")
         try:
             raw = await self.llm.generate_json(
-                model=select_model("edit", "high"),
+                model=model,
                 prompt=prompt,
                 system=SYSTEM_PROMPT,
                 temperature=0.2,
@@ -191,9 +210,18 @@ class Planner:
             if isinstance(values, list):
                 paragraphs = [str(value).strip() for value in values if str(value).strip()]
                 if paragraphs:
+                    self._record_llm_event(
+                        "draft_paragraphs",
+                        document.id,
+                        prompt,
+                        model,
+                        raw_response=raw,
+                        parsed_json={"paragraphs": paragraphs[:30]},
+                    )
                     return paragraphs[:30]
-        except Exception:
-            pass
+            self._record_llm_event("draft_paragraphs", document.id, prompt, model, raw_response=raw, parsed_json=parsed, used_fallback=True)
+        except Exception as exc:
+            self._record_llm_event("draft_paragraphs", document.id, prompt, model, error=str(exc), used_fallback=True)
         return self._fallback_draft_paragraphs(request=request, document=document)
 
     def _fallback_draft_paragraphs(self, request: str, document: Document | None) -> list[str]:
@@ -241,6 +269,28 @@ class Planner:
         if cleaned:
             return cleaned[:120]
         return self._infer_title(request)
+
+    def _record_llm_event(
+        self,
+        task: str,
+        document_id: str,
+        prompt: str,
+        model: str,
+        raw_response: str | None = None,
+        parsed_json: dict[str, Any] | None = None,
+        error: str | None = None,
+        used_fallback: bool = False,
+    ) -> None:
+        self.repo.add_llm_event(
+            document_id=document_id,
+            task=task,
+            model=model,
+            prompt_text=prompt,
+            raw_response=raw_response,
+            parsed_json=parsed_json,
+            error=error,
+            used_fallback=used_fallback,
+        )
 
     def _fallback_plan(self, request: str, document: Document) -> WorkPlan:
         replace_match = re.search(r"(.+?)(?:을|를)\s*모두\s*(.+?)(?:으로|로)\s*변경", request)

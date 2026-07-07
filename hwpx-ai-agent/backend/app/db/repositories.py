@@ -4,12 +4,13 @@ from pathlib import Path
 import json
 from typing import Any
 
-from app.db.database import connect
+from app.db.database import connect, init_db
 
 
 class Repository:
     def __init__(self, database_path: Path) -> None:
         self.database_path = database_path
+        init_db(database_path)
 
     def add_document(self, document_id: str, filename: str, original_path: Path, workspace_dir: Path) -> None:
         with connect(self.database_path) as conn:
@@ -75,6 +76,44 @@ class Repository:
                 "INSERT INTO audit_logs (document_id, event, detail_json) VALUES (?, ?, ?)",
                 (document_id, event, json.dumps(detail, ensure_ascii=False)),
             )
+
+    def add_llm_event(
+        self,
+        task: str,
+        prompt_text: str,
+        document_id: str | None = None,
+        model: str | None = None,
+        raw_response: str | None = None,
+        parsed_json: dict[str, Any] | None = None,
+        error: str | None = None,
+        used_fallback: bool = False,
+    ) -> None:
+        with connect(self.database_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO llm_events
+                (document_id, task, model, prompt_text, raw_response, parsed_json, error, used_fallback)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    document_id,
+                    task,
+                    model,
+                    prompt_text,
+                    raw_response,
+                    json.dumps(parsed_json, ensure_ascii=False) if parsed_json is not None else None,
+                    error,
+                    1 if used_fallback else 0,
+                ),
+            )
+
+    def list_llm_events(self, limit: int = 100) -> list[dict[str, Any]]:
+        with connect(self.database_path) as conn:
+            rows = conn.execute(
+                "SELECT * FROM llm_events ORDER BY created_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+            return [dict(row) for row in rows]
 
     def audit_logs(self, document_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
         with connect(self.database_path) as conn:

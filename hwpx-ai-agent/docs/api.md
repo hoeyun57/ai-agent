@@ -20,4 +20,5 @@
 - `GET /api/monitoring/status`: 문서 수, 계획 상태, Ollama 상태, 최근 계획/감사 로그
 - `GET /api/monitoring/plans`: 최근 계획 목록
 - `GET /api/monitoring/audit`: 최근 감사 로그
+- `GET /api/monitoring/llm`: 최근 LLM 프롬프트, 원문 응답, 파싱 결과, fallback 여부
 

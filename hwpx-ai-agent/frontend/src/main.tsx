@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
-import { Activity, Bot, FileClock, FileSearch, History, Settings, Upload } from "lucide-react";
+import { Activity, Bot, FileClock, FileSearch, History, Settings, TerminalSquare, Upload } from "lucide-react";
 import { App } from "./pages/App";
 import "./styles.css";
 
@@ -13,6 +13,7 @@ const nav = [
   { to: "/documents", label: "문서", icon: FileSearch },
   { to: "/agent", label: "AI 작업", icon: Bot },
   { to: "/monitoring", label: "모니터링", icon: Activity },
+  { to: "/developer", label: "개발자", icon: TerminalSquare },
   { to: "/plans", label: "승인", icon: FileClock },
   { to: "/history", label: "이력", icon: History },
   { to: "/settings", label: "설정", icon: Settings }

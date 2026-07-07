@@ -45,6 +45,19 @@ export type RunResponse = PlanResponse & {
   result?: unknown;
 };
 
+export type LlmEvent = {
+  id: number;
+  document_id?: string | null;
+  task: string;
+  model?: string | null;
+  prompt_text: string;
+  raw_response?: string | null;
+  parsed?: unknown;
+  error?: string | null;
+  used_fallback: boolean;
+  created_at: string;
+};
+
 export type MonitoringStatus = {
   ok: boolean;
   documents: number;
@@ -52,5 +65,5 @@ export type MonitoringStatus = {
   ollama: { ok?: boolean; error?: string; models?: unknown[] };
   recent_audit: Array<Record<string, unknown>>;
   recent_plans: Array<Record<string, unknown>>;
+  recent_llm_events: LlmEvent[];
 };
-

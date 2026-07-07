@@ -237,6 +237,40 @@ pre {
   font-size: 13px;
 }
 
+.devLog {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.devEvent {
+  border-top: 1px solid #d9e0e4;
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+}
+
+.devEvent h3 {
+  font-size: 15px;
+  margin: 4px 0 0;
+}
+
+.devEventHeader {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.devEventHeader span {
+  background: #eef3f5;
+  border: 1px solid #d1dde2;
+  border-radius: 999px;
+  color: #4d5b63;
+  font-size: 13px;
+  padding: 5px 9px;
+}
+
 .empty {
   color: #68747d;
   margin: 28px 0;
