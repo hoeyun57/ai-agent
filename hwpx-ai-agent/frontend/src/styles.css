@@ -99,6 +99,10 @@ main {
   justify-content: space-between;
 }
 
+.compact {
+  justify-content: flex-start;
+}
+
 .panelHeader h2,
 .summaryHeader h3 {
   margin: 0;
@@ -168,6 +172,34 @@ textarea {
   text-align: left;
 }
 
+.documentRow {
+  align-items: stretch;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 40px;
+}
+
+.documentRow .row {
+  min-width: 0;
+}
+
+.documentRow .row strong,
+.documentRow .row span {
+  overflow-wrap: anywhere;
+}
+
+.iconButton {
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px;
+}
+
+.dangerButton {
+  color: #b42318;
+}
+
 .row span {
   color: #66727a;
   font-size: 12px;
@@ -231,6 +263,40 @@ pre {
 .hint {
   color: #56636b;
   font-size: 13px;
+}
+
+.devLog {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.devEvent {
+  border-top: 1px solid #d9e0e4;
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+}
+
+.devEvent h3 {
+  font-size: 15px;
+  margin: 4px 0 0;
+}
+
+.devEventHeader {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.devEventHeader span {
+  background: #eef3f5;
+  border: 1px solid #d1dde2;
+  border-radius: 999px;
+  color: #4d5b63;
+  font-size: 13px;
+  padding: 5px 9px;
 }
 
 .empty {

@@ -29,6 +29,18 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     detail_json TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS llm_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_id TEXT,
+    task TEXT NOT NULL,
+    model TEXT,
+    prompt_text TEXT NOT NULL,
+    raw_response TEXT,
+    parsed_json TEXT,
+    error TEXT,
+    used_fallback INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE IF NOT EXISTS model_settings (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     mode TEXT NOT NULL,

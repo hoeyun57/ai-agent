@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import agents, approvals, documents, rules, settings
+from app.api import agents, approvals, documents, monitoring, rules, settings
 from app.config import get_settings
 from app.db.database import init_db
 
@@ -22,6 +22,7 @@ def create_app() -> FastAPI:
     app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
     app.include_router(agents.router, prefix="/api/agent", tags=["agent"])
     app.include_router(approvals.router, prefix="/api/plans", tags=["plans"])
+    app.include_router(monitoring.router, prefix="/api/monitoring", tags=["monitoring"])
     app.include_router(rules.router, prefix="/api/rules", tags=["rules"])
     app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
     return app

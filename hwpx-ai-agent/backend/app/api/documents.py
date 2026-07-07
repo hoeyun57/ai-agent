@@ -46,6 +46,14 @@ def get_document(document_id: str) -> dict:
         raise HTTPException(status_code=404, detail="document not found") from exc
 
 
+@router.delete("/{document_id}")
+def delete_document(document_id: str) -> dict:
+    try:
+        return DocumentService().delete_document(document_id)
+    except DocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="document not found") from exc
+
+
 @router.get("/{document_id}/outline")
 def get_outline(document_id: str) -> dict:
     document = DocumentService().load_document(document_id)

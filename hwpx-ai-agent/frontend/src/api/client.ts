@@ -1,4 +1,4 @@
-import type { DocumentModel, PlanResponse } from "../types";
+import type { DocumentModel, LlmEvent, MonitoringStatus, PlanResponse, RunResponse } from "../types";
 
 const jsonHeaders = { "Content-Type": "application/json" };
 
@@ -23,12 +23,26 @@ export async function getDocument(id: string): Promise<DocumentModel> {
   return parse(await fetch(`/api/documents/${id}`));
 }
 
+export async function deleteDocument(id: string): Promise<{ deleted: boolean; document_id: string }> {
+  return parse(await fetch(`/api/documents/${id}`, { method: "DELETE" }));
+}
+
 export async function createPlan(documentId: string, message: string): Promise<PlanResponse> {
   return parse(
     await fetch("/api/agent/plan", {
       method: "POST",
       headers: jsonHeaders,
       body: JSON.stringify({ document_id: documentId, message })
+    })
+  );
+}
+
+export async function runAgent(documentId: string, message: string, autoApprove = true): Promise<RunResponse> {
+  return parse(
+    await fetch("/api/agent/run", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ document_id: documentId, message, auto_approve: autoApprove })
     })
   );
 }
@@ -53,3 +67,10 @@ export async function getModels(): Promise<unknown> {
   return parse(await fetch("/api/settings/models"));
 }
 
+export async function getMonitoringStatus(): Promise<MonitoringStatus> {
+  return parse(await fetch("/api/monitoring/status"));
+}
+
+export async function getLlmEvents(limit = 100): Promise<{ items: LlmEvent[] }> {
+  return parse(await fetch(`/api/monitoring/llm?limit=${limit}`));
+}
