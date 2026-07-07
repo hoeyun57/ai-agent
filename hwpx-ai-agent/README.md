@@ -143,21 +143,65 @@ MODEL_MODE=auto
 
 `.env`를 수정한 뒤에는 백엔드를 껐다가 다시 켜야 반영됩니다.
 
-## 4. 백엔드 설치와 실행
+## 4. 백엔드 설치
 
 Python 3.14에서는 일부 패키지 호환성이 불안정할 수 있으므로 Python 3.12 사용을 권장합니다.
 
-CMD에서 실행:
+CMD에서 백엔드 의존성을 먼저 설치합니다.
 
 ```cmd
 cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
 py -3.12 -m venv .venv
 .venv\Scripts\python.exe -m pip install --upgrade pip
 .venv\Scripts\python.exe -m pip install -e ".[test]"
-.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
+## 5. 프론트엔드 설치
+
+CMD에서 프론트엔드 의존성을 설치합니다.
+
+```cmd
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\frontend
+pnpm.cmd install
+```
+
+PowerShell에서 `pnpm.ps1` 실행 정책 오류가 나면 `pnpm` 대신 `pnpm.cmd`를 쓰면 됩니다.
+
+## 6. 백엔드와 프론트엔드를 한꺼번에 실행
+
+설치가 끝난 뒤에는 프로젝트 루트에서 아래 명령 하나로 백엔드와 프론트엔드를 같이 켤 수 있습니다.
+
+CMD:
+
+```cmd
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent
+scripts\start_all.cmd
+```
+
+PowerShell:
+
+```powershell
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent
+powershell -ExecutionPolicy Bypass -File scripts\start_all.ps1
+```
+
+이 스크립트는 새 창 두 개를 엽니다.
+
+- `HWPX AI Agent Backend`: `http://localhost:8000`
+- `HWPX AI Agent Frontend`: `http://localhost:5173`
+
+잠시 후 브라우저도 자동으로 `http://localhost:5173`에 열립니다.
+
+서버를 끄려면 열린 백엔드/프론트엔드 창에서 각각 `Ctrl + C`를 누르거나 창을 닫으면 됩니다.
+
+## 백엔드만 따로 실행
+
 정상 실행되면 아래와 비슷하게 표시됩니다.
+
+```cmd
+cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
 
 ```text
 Uvicorn running on http://127.0.0.1:8000
@@ -173,17 +217,14 @@ http://localhost:8000/docs
 
 `/api/settings/models`에서 `ollama.ok`가 `true`면 Ollama 연결이 정상입니다.
 
-## 5. 프론트엔드 설치와 실행
+## 프론트엔드만 따로 실행
 
 새 CMD 창을 열고 실행합니다.
 
 ```cmd
 cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\frontend
-pnpm.cmd install
 pnpm.cmd dev
 ```
-
-PowerShell에서 `pnpm.ps1` 실행 정책 오류가 나면 `pnpm` 대신 `pnpm.cmd`를 쓰면 됩니다.
 
 정상 실행 후 브라우저에서 접속합니다.
 
