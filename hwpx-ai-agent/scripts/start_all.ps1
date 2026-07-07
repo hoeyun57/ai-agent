@@ -6,8 +6,41 @@ $Frontend = Join-Path $Root "frontend"
 $BackendPython = Join-Path $Backend ".venv\Scripts\python.exe"
 $PnpmCommand = "pnpm.cmd"
 
+function Test-OllamaReady {
+  try {
+    Invoke-RestMethod -Uri "http://localhost:11434/api/tags" -Method Get -TimeoutSec 2 | Out-Null
+    return $true
+  } catch {
+    return $false
+  }
+}
+
 if (!(Test-Path $BackendPython)) {
   Write-Error "Backend virtual environment was not found. Create it and install dependencies first."
+}
+
+if (!(Get-Command "ollama.exe" -ErrorAction SilentlyContinue) -and !(Get-Command "ollama" -ErrorAction SilentlyContinue)) {
+  Write-Error "ollama was not found. Install Ollama first, then run this script again."
+}
+
+if (Test-OllamaReady) {
+  Write-Host "[INFO] Ollama is already running at http://localhost:11434"
+} else {
+  Write-Host "[INFO] Ollama is not running. Starting Ollama server..."
+  Start-Process -FilePath "cmd.exe" -ArgumentList "/k", "ollama serve" -WindowStyle Normal
+  $ollamaStarted = $false
+  for ($i = 0; $i -lt 15; $i++) {
+    Start-Sleep -Seconds 1
+    if (Test-OllamaReady) {
+      $ollamaStarted = $true
+      break
+    }
+  }
+  if ($ollamaStarted) {
+    Write-Host "[OK] Ollama server is running."
+  } else {
+    Write-Warning "Ollama server was started, but it did not respond yet. Keep the Ollama window open and check it if model calls fail."
+  }
 }
 
 if (!(Get-Command "pnpm.cmd" -ErrorAction SilentlyContinue)) {

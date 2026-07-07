@@ -221,14 +221,17 @@ PowerShell:
 powershell -ExecutionPolicy Bypass -File scripts\start_all.ps1
 ```
 
-이 스크립트는 새 창 두 개를 엽니다.
+이 스크립트는 Ollama가 실행 중인지 먼저 확인합니다. Ollama가 꺼져 있으면 `ollama serve` 창을 자동으로 열고, 그 다음 백엔드와 프론트엔드를 실행합니다.
 
+보통 새 창 두 개 또는 세 개가 열립니다.
+
+- `Ollama Server`: `http://localhost:11434`, Ollama가 꺼져 있었을 때만 열림
 - `HWPX AI Agent Backend`: `http://localhost:8000`
 - `HWPX AI Agent Frontend`: `http://localhost:5173`
 
 잠시 후 브라우저도 자동으로 `http://localhost:5173`에 열립니다.
 
-서버를 끄려면 열린 백엔드/프론트엔드 창에서 각각 `Ctrl + C`를 누르거나 창을 닫으면 됩니다.
+서버를 끄려면 열린 Ollama/백엔드/프론트엔드 창에서 각각 `Ctrl + C`를 누르거나 창을 닫으면 됩니다.
 
 `pnpm.cmd was not found`가 나오면 Node.js LTS가 설치되어 있는지 확인한 뒤 아래 명령을 한 번 실행하세요.
 
