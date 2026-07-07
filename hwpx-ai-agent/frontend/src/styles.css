@@ -172,6 +172,34 @@ textarea {
   text-align: left;
 }
 
+.documentRow {
+  align-items: stretch;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 40px;
+}
+
+.documentRow .row {
+  min-width: 0;
+}
+
+.documentRow .row strong,
+.documentRow .row span {
+  overflow-wrap: anywhere;
+}
+
+.iconButton {
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px;
+}
+
+.dangerButton {
+  color: #b42318;
+}
+
 .row span {
   color: #66727a;
   font-size: 12px;

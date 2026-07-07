@@ -23,6 +23,10 @@ export async function getDocument(id: string): Promise<DocumentModel> {
   return parse(await fetch(`/api/documents/${id}`));
 }
 
+export async function deleteDocument(id: string): Promise<{ deleted: boolean; document_id: string }> {
+  return parse(await fetch(`/api/documents/${id}`, { method: "DELETE" }));
+}
+
 export async function createPlan(documentId: string, message: string): Promise<PlanResponse> {
   return parse(
     await fetch("/api/agent/plan", {

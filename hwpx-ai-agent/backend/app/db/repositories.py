@@ -29,6 +29,13 @@ class Repository:
             row = conn.execute("SELECT * FROM documents WHERE id = ?", (document_id,)).fetchone()
             return dict(row) if row else None
 
+    def delete_document(self, document_id: str) -> None:
+        with connect(self.database_path) as conn:
+            conn.execute("DELETE FROM llm_events WHERE document_id = ?", (document_id,))
+            conn.execute("DELETE FROM audit_logs WHERE document_id = ?", (document_id,))
+            conn.execute("DELETE FROM plans WHERE document_id = ?", (document_id,))
+            conn.execute("DELETE FROM documents WHERE id = ?", (document_id,))
+
     def set_output_path(self, document_id: str, output_path: Path) -> None:
         with connect(self.database_path) as conn:
             conn.execute("UPDATE documents SET output_path = ? WHERE id = ?", (str(output_path), document_id))

@@ -3,6 +3,7 @@
 - `POST /api/documents/upload`: HWPX 업로드
 - `GET /api/documents`: 문서 목록
 - `GET /api/documents/{document_id}`: 내부 문서 모델 조회
+- `DELETE /api/documents/{document_id}`: 문서 기록과 로컬 원본/작업/수정본 파일 삭제
 - `GET /api/documents/{document_id}/outline`: 섹션 개요
 - `GET /api/documents/{document_id}/tables`: 표 목록
 - `POST /api/documents/{document_id}/search`: 텍스트 검색

@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Route, Routes } from "react-router-dom";
-import { Check, Download, RefreshCw, Search, ShieldCheck, X } from "lucide-react";
+import { Check, Download, RefreshCw, Search, ShieldCheck, Trash2, X } from "lucide-react";
 import {
   approvePlan,
   createPlan,
+  deleteDocument,
   getDiff,
   getDocument,
   getLlmEvents,
@@ -61,9 +62,21 @@ function UploadPage() {
 }
 
 function DocumentsPage() {
+  const queryClient = useQueryClient();
   const docs = useQuery({ queryKey: ["documents"], queryFn: listDocuments });
   const [selectedId, setSelectedId] = useState<string>("");
   const detail = useQuery({ queryKey: ["document", selectedId], queryFn: () => getDocument(selectedId), enabled: Boolean(selectedId) });
+  const remove = useMutation({
+    mutationFn: deleteDocument,
+    onSuccess: (_data, deletedId) => {
+      if (selectedId === deletedId) {
+        setSelectedId("");
+      }
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      queryClient.removeQueries({ queryKey: ["document", deletedId] });
+      queryClient.invalidateQueries({ queryKey: ["monitoring"] });
+    }
+  });
   return (
     <section className="split">
       <div className="panel">
@@ -75,12 +88,27 @@ function DocumentsPage() {
         </div>
         <div className="list">
           {(docs.data ?? []).map((doc) => (
-            <button className={selectedId === doc.id ? "row selected" : "row"} key={doc.id} onClick={() => setSelectedId(doc.id)}>
-              <strong>{doc.filename}</strong>
-              <span>{doc.id}</span>
-            </button>
+            <div className={selectedId === doc.id ? "documentRow selected" : "documentRow"} key={doc.id}>
+              <button className="row" onClick={() => setSelectedId(doc.id)}>
+                <strong>{doc.filename}</strong>
+                <span>{doc.id}</span>
+              </button>
+              <button
+                className="iconButton dangerButton"
+                disabled={remove.isPending}
+                onClick={() => {
+                  if (window.confirm(`'${doc.filename}' 문서를 삭제할까요? 원본, 작업 파일, 수정본과 관련 계획 기록이 함께 삭제됩니다.`)) {
+                    remove.mutate(doc.id);
+                  }
+                }}
+                title="문서 삭제"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
           ))}
         </div>
+        {remove.error ? <p className="error">{String(remove.error)}</p> : null}
       </div>
       <div className="panel wide">{detail.data ? <DocumentSummary document={detail.data} /> : <Empty label="문서를 선택하세요" />}</div>
     </section>

@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import json
+from shutil import rmtree
 
 from app.config import get_settings
 from app.db.repositories import Repository
@@ -10,7 +11,7 @@ from app.hwpx.document_model import Document
 from app.hwpx.package import HwpxPackage
 from app.hwpx.parser import parse_document
 from app.hwpx.validator import validate_hwpx_package
-from app.security.file_security import safe_output_name
+from app.security.file_security import resolve_within, safe_output_name
 from app.services.audit_service import AuditService
 from app.services.storage_service import StorageService
 from app.tools.registry import ToolRegistry
@@ -49,6 +50,25 @@ class DocumentService:
         if row is None:
             raise DocumentNotFoundError(document_id)
         return row
+
+    def delete_document(self, document_id: str) -> dict:
+        row = self.document_row(document_id)
+        self._delete_file(Path(row["original_path"]), self.settings.originals_dir)
+        self._delete_dir(Path(row["workspace_dir"]), self.settings.workspaces_dir)
+        if row.get("output_path"):
+            self._delete_file(Path(row["output_path"]), self.settings.outputs_dir)
+        self.repo.delete_document(document_id)
+        return {"deleted": True, "document_id": document_id}
+
+    def _delete_file(self, path: Path, root: Path) -> None:
+        target = resolve_within(root, path)
+        if target.exists():
+            target.unlink()
+
+    def _delete_dir(self, path: Path, root: Path) -> None:
+        target = resolve_within(root, path)
+        if target.exists():
+            rmtree(target)
 
     def execute_plan(self, plan_id: str) -> dict:
         plan_row = self.repo.get_plan(plan_id)
