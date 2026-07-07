@@ -54,14 +54,47 @@ GPU가 없어도 CPU로 실행은 가능하지만, 문서 요약이나 규정 �
 
 ## 처음 설치 순서
 
-아래 예시는 프로젝트가 다음 위치에 있다고 가정합니다.
+아래 명령들은 모두 `hwpx-ai-agent` 프로젝트 폴더에서 실행한다고 가정합니다.
 
 ```text
-C:\Users\OPENCC\Desktop\ai-agent-master\
-└─ hwpx-ai-agent\
+hwpx-ai-agent\
+├─ backend\
+├─ frontend\
+└─ scripts\
 ```
 
-다른 위치에 압축을 풀었다면 명령의 경로만 본인 PC에 맞게 바꾸면 됩니다.
+다른 위치에 압축을 풀어도 괜찮습니다. 먼저 그 폴더로 이동한 뒤 실행하면 됩니다.
+
+## 자동 설치
+
+Windows에서 필요한 프로그램과 프로젝트 의존성을 한 번에 준비하려면 프로젝트 루트에서 실행합니다.
+
+CMD:
+
+```cmd
+scripts\setup_windows.cmd
+```
+
+PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1
+```
+
+이 스크립트는 가능한 경우 자동으로 처리합니다.
+
+- Python 3.12 설치 확인, 없으면 `winget`으로 설치 시도
+- Node.js LTS 설치 확인, 없으면 `winget`으로 설치 시도
+- Git 설치 확인, 없으면 `winget`으로 설치 시도
+- Ollama 설치 확인, 없으면 `winget`으로 설치 시도
+- pnpm 확인, 없으면 Corepack 또는 npm으로 설치 시도
+- `backend\.env` 생성
+- `backend\.venv` 생성
+- 백엔드 Python 패키지 설치
+- 프론트엔드 npm 패키지 설치
+- 이미 등록된 `qwen3.5-deepseek-q4/q8` 모델이 있으면 `hwpx-agent-q4/q8` 별칭 생성
+
+`winget`이 없거나 회사/학교 PC 정책으로 설치가 막힌 경우에는 표에 있는 프로그램을 수동으로 설치한 뒤 다시 실행하세요.
 
 ## 1. Ollama 모델 확인
 
@@ -100,9 +133,10 @@ ollama list
 GGUF 파일에서 직접 등록해야 한다면, GGUF 파일과 Modelfile이 있는 폴더에서 실행합니다.
 
 ```cmd
-cd C:\Users\OPENCC\Desktop\ai-agent-master
+cd ..
 ollama create hwpx-agent-q4:latest -f Modelfile_q4
 ollama create hwpx-agent-q8:latest -f Modelfile_q8
+cd hwpx-ai-agent
 ```
 
 `invalid model name`이 나오면 Modelfile의 `FROM` 줄을 확인하세요. GGUF 파일을 직접 가리킬 때는 보통 아래처럼 상대 경로를 씁니다.
@@ -116,9 +150,10 @@ FROM ./Qwen3.5-9B-DeepSeek-V4-Flash-Q4_K_M.gguf
 `backend\.env` 파일은 직접 만들어야 합니다.
 
 ```cmd
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+cd backend
 copy .env.example .env
 notepad .env
+cd ..
 ```
 
 기본 모델 이름을 쓸 경우:
@@ -150,10 +185,11 @@ Python 3.14에서는 일부 패키지 호환성이 불안정할 수 있으므로
 CMD에서 백엔드 의존성을 먼저 설치합니다.
 
 ```cmd
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+cd backend
 py -3.12 -m venv .venv
 .venv\Scripts\python.exe -m pip install --upgrade pip
 .venv\Scripts\python.exe -m pip install -e ".[test]"
+cd ..
 ```
 
 ## 5. 프론트엔드 설치
@@ -161,8 +197,9 @@ py -3.12 -m venv .venv
 CMD에서 프론트엔드 의존성을 설치합니다.
 
 ```cmd
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\frontend
+cd frontend
 pnpm.cmd install
+cd ..
 ```
 
 PowerShell에서 `pnpm.ps1` 실행 정책 오류가 나면 `pnpm` 대신 `pnpm.cmd`를 쓰면 됩니다.
@@ -170,7 +207,7 @@ PowerShell에서 `pnpm.ps1` 실행 정책 오류가 나면 `pnpm` 대신 `pnpm.c
 ## 6. 백엔드와 프론트엔드를 한꺼번에 실행
 
 설치가 끝난 뒤에는 프로젝트 루트에서 아래 명령 하나로 백엔드와 프론트엔드를 같이 켤 수 있습니다.
-이미 `PS C:\models\hwpx-ai-agent>`처럼 프로젝트 폴더에 있다면 `cd ...`는 다시 할 필요가 없습니다.
+이미 프로젝트 폴더에 있다면 `cd ...`는 다시 할 필요가 없습니다.
 
 CMD:
 
@@ -211,7 +248,7 @@ npm install -g pnpm
 정상 실행되면 아래와 비슷하게 표시됩니다.
 
 ```cmd
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+cd backend
 .venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
@@ -234,7 +271,7 @@ http://localhost:8000/docs
 새 CMD 창을 열고 실행합니다.
 
 ```cmd
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\frontend
+cd frontend
 pnpm.cmd dev
 ```
 
@@ -433,7 +470,7 @@ Ollama 연결 상태와 모델 설정을 확인하는 화면입니다.
 PowerShell을 쓰는 경우에는 아래처럼 실행할 수도 있습니다.
 
 ```powershell
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+cd backend
 .\.venv\Scripts\Activate.ps1
 python -m uvicorn app.main:app --reload --port 8000
 ```
@@ -441,7 +478,7 @@ python -m uvicorn app.main:app --reload --port 8000
 다른 PowerShell 창:
 
 ```powershell
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\frontend
+cd frontend
 pnpm.cmd dev
 ```
 
@@ -452,7 +489,7 @@ pnpm.cmd dev
 아래처럼 `python -m uvicorn` 방식으로 실행하세요.
 
 ```cmd
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+cd backend
 .venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
@@ -467,7 +504,7 @@ cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
 전역 `pytest`가 아니라 가상환경 안의 Python으로 실행하세요.
 
 ```cmd
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+cd backend
 .venv\Scripts\python.exe -m pytest
 ```
 
@@ -523,7 +560,7 @@ http://localhost:8000/api/settings/models
 패키지 설치가 실패하면 Python 3.12로 가상환경을 다시 만드는 것을 권장합니다.
 
 ```cmd
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+cd backend
 rmdir /s /q .venv
 py -3.12 -m venv .venv
 .venv\Scripts\python.exe -m pip install --upgrade pip
@@ -535,14 +572,13 @@ py -3.12 -m venv .venv
 pytest가 설치된 개발 환경:
 
 ```cmd
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent\backend
+cd backend
 .venv\Scripts\python.exe -m pytest
 ```
 
 pytest가 없는 최소 환경에서는 smoke test를 실행할 수 있습니다.
 
 ```cmd
-cd C:\Users\OPENCC\Desktop\ai-agent-master\hwpx-ai-agent
 backend\.venv\Scripts\python.exe scripts\smoke_test_backend.py
 ```
 
